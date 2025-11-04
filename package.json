@@ -1,0 +1,67 @@
+{
+  "name": "fire-tv-remote-control",
+  "version": "1.0.0",
+  "description": "Control your Fire TV via ADB with a modern interface",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "postinstall": "node scripts/download-adb.js",
+    "build": "npm run build:all",
+    "build:all": "npm run build:win && npm run build:mac && npm run build:linux",
+    "build:win": "electron-packager . \"Fire TV Remote Control\" --platform=win32 --arch=x64 --out=dist --overwrite --icon=assets/icon.ico --app-copyright=\"Fire TV Remote Control\" --app-version=1.0.0 --build-version=1.0.0 --ignore=\"dist|scripts|README.md|.git\" --prune=true",
+    "build:mac": "electron-packager . \"Fire TV Remote Control\" --platform=darwin --arch=x64 --out=dist --overwrite --icon=assets/icon.icns --app-copyright=\"Fire TV Remote Control\" --app-version=1.0.0 --build-version=1.0.0 --ignore=\"dist|scripts|README.md|.git\" --prune=true",
+    "build:linux": "electron-packager . \"Fire TV Remote Control\" --platform=linux --arch=x64 --out=dist --overwrite --icon=assets/icon.png --app-copyright=\"Fire TV Remote Control\" --app-version=1.0.0 --build-version=1.0.0 --ignore=\"dist|scripts|README.md|.git\" --prune=true",
+    "build:win-arm": "electron-packager . \"Fire TV Remote Control\" --platform=win32 --arch=arm64 --out=dist --overwrite --icon=assets/icon.ico",
+    "build:mac-arm": "electron-packager . \"Fire TV Remote Control\" --platform=darwin --arch=arm64 --out=dist --overwrite --icon=assets/icon.icns",
+    "build:linux-arm": "electron-packager . \"Fire TV Remote Control\" --platform=linux --arch=arm64 --out=dist --overwrite --icon=assets/icon.png",
+    "package": "npm run postinstall && npm run build",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "fire-tv",
+    "remote-control",
+    "adb",
+    "android",
+    "electron"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-packager": "^17.1.2",
+    "rimraf": "^5.0.5"
+  },
+  "build": {
+    "appId": "com.firetvremote.app",
+    "productName": "Fire TV Remote Control",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "index.html",
+      "assets/**/*",
+      "platform-tools/**/*",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.utilities"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/icon.png",
+      "category": "Utility"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/fire-tv-remote-control"
+  }
+}

@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fire TV Remote Control</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Amazon Ember', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: transparent;
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+            padding: 8px; /* Add padding to show rounded borders */
+        }
+
+        .window-container {
+            height: calc(100vh - 16px); /* Account for body padding */
+            display: flex;
+            flex-direction: column;
+            background: #0f171e;
+            border-radius: 12px; /* Rounded window corners */
+            overflow: hidden; /* Ensure content respects rounded corners */
+        }
+
+        .title-bar {
+            height: 44px;
+            background: #232f3e;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            -webkit-app-region: drag;
+            user-select: none;
+            border-bottom: 1px solid #37475a;
+            border-radius: 12px 12px 0 0; /* Rounded top corners only */
+        }
+
+        .title-text {
+            font-weight: 600;
+            font-size: 14px;
+            color: #ff9500;
+            letter-spacing: -0.01em;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 12px;
+            -webkit-app-region: no-drag;
+        }
+
+        .control-btn {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .control-btn.minimize { 
+            background: #5a6c7d; 
+        }
+        .control-btn.maximize { 
+            background: #5a6c7d; 
+        }
+        .control-btn.close { 
+            background: #ff4757; 
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            opacity: 0.8;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            background: #0f171e;
+            border-radius: 0 0 12px 12px; /* Rounded bottom corners */
+            overflow: hidden; /* Ensure content respects rounded corners */
+        }
+
+        .left-panel {
+            width: 380px;
+            padding: 24px;
+            border-right: 1px solid #37475a;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            background: #1b2631;
+            overflow-y: auto; /* Add scroll if needed */
+        }
+
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #0f171e;
+            overflow: hidden; /* Ensure content respects rounded corners */
+        }
+
+        .section {
+            background: #232f3e;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #37475a;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .section h3 {
+            margin-bottom: 16px;
+            color: #ff9500;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        .connection-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .connection-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 12px 16px;
+            background: #37475a;
+            border: 1px solid #4a5f7a;
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 14px;
+            transition: all 0.15s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #ff9500;
+            background: #495663;
+            box-shadow: 0 0 0 2px rgba(255, 149, 0, 0.2);
+        }
+
+        .input-field::placeholder {
+            color: #8a9ba8;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            background: #ff9500;
+            border: none;
+            border-radius: 6px;
+            color: #ffffff;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.15s ease;
+            font-size: 14px;
+            white-space: nowrap;
+            letter-spacing: -0.01em;
+            text-transform: uppercase;
+            font-size: 12px;
+        }
+
+        .btn:hover {
+            background: #e6850e;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 149, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.secondary {
+            background: #5a6c7d;
+            color: #ffffff;
+        }
+
+        .btn.secondary:hover {
+            background: #6b7d8f;
+        }
+
+        .btn.small {
+            padding: 8px 14px;
+            font-size: 11px;
+        }
+
+        .btn.danger {
+            background: #d63031;
+            color: #ffffff;
+        }
+
+        .btn.danger:hover {
+            background: #e17055;
+        }
+
+        .btn.disconnect {
+            background: transparent;
+            border: 1px solid #5a6c7d;
+            color: #8a9ba8;
+            padding: 6px 12px;
+            font-size: 11px;
+        }
+
+        .btn.disconnect:hover {
+            border-color: #d63031;
+            color: #d63031;
+            background: rgba(214, 48, 49, 0.1);
+        }
+
+        .remote-section {
+            flex: 1;
+        }
+
+        .remote-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            max-width: 200px;
+            margin: 0 auto 24px;
+        }
+
+        .remote-btn {
+            width: 60px;
+            height: 60px;
+            border: none;
+            border-radius: 50%;
+            background: #37475a;
+            color: #ffffff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 600;
+            transition: all 0.15s ease;
+            border: 2px solid #4a5f7a;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .remote-btn:hover {
+            background: #4a5f7a;
+            transform: translateY(-2px);
+            border-color: #ff9500;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .remote-btn.center {
+            background: #ff9500;
+            border-color: #ff9500;
+            box-shadow: 0 2px 8px rgba(255, 149, 0, 0.3);
+        }
+
+        .remote-btn.center:hover {
+            background: #e6850e;
+            border-color: #e6850e;
+            box-shadow: 0 4px 16px rgba(255, 149, 0, 0.4);
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn-small {
+            padding: 8px 12px;
+            background: #37475a;
+            border: 1px solid #4a5f7a;
+            border-radius: 6px;
+            color: #ffffff;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.15s ease;
+            min-width: 60px;
+        }
+
+        .control-btn-small:hover {
+            background: #4a5f7a;
+            border-color: #ff9500;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(255, 149, 0, 0.2);
+        }
+
+        .system-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .system-btn {
+            padding: 12px 8px;
+            background: #37475a;
+            border: 1px solid #4a5f7a;
+            border-radius: 6px;
+            color: #ffffff;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.15s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .system-btn:hover {
+            background: #ff9500;
+            border-color: #ff9500;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(255, 149, 0, 0.3);
+        }
+
+        .text-input-section {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .right-content {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .tabs {
+            display: flex;
+            background: #232f3e;
+            border-bottom: 1px solid #37475a;
+        }
+
+        .tab {
+            padding: 16px 24px;
+            background: none;
+            border: none;
+            color: #8a9ba8;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-weight: 500;
+            font-size: 14px;
+            border-bottom: 3px solid transparent;
+            position: relative;
+        }
+
+        .tab.active {
+            color: #ff9500;
+            border-bottom-color: #ff9500;
+            background: rgba(255, 149, 0, 0.05);
+        }
+
+        .tab:hover:not(.active) {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .terminal {
+            background: #0f171e;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 13px;
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #37475a;
+            line-height: 1.6;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .terminal-input {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .terminal-field {
+            flex: 1;
+            padding: 12px 16px;
+            background: #232f3e;
+            border: 1px solid #37475a;
+            border-radius: 6px;
+            color: #ffffff;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 13px;
+        }
+
+        .terminal-field:focus {
+            outline: none;
+            border-color: #ff9500;
+            box-shadow: 0 0 0 2px rgba(255, 149, 0, 0.2);
+        }
+
+        .apps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 16px;
+            max-height: 450px;
+            overflow-y: auto;
+        }
+
+        .app-item {
+            background: #232f3e;
+            border: 1px solid #37475a;
+            border-radius: 8px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .app-item:hover {
+            background: #37475a;
+            border-color: #ff9500;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(255, 149, 0, 0.2);
+        }
+
+        .app-icon {
+            width: 48px;
+            height: 48px;
+            background: #ff9500;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 16px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(255, 149, 0, 0.3);
+        }
+
+        .app-name {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #ffffff;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #d63031;
+            margin-right: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 8px rgba(214, 48, 49, 0.3);
+        }
+
+        .status-indicator.connected {
+            background: #00b894;
+            box-shadow: 0 0 8px rgba(0, 184, 148, 0.3);
+        }
+
+        .status-row {
+            display: flex;
+            align-items: center;
+            font-size: 13px;
+            margin-bottom: 12px;
+            color: #8a9ba8;
+            font-weight: 500;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .install-section {
+            margin-bottom: 24px;
+        }
+
+        .install-section p {
+            margin-bottom: 20px;
+            color: #8a9ba8;
+            line-height: 1.6;
+        }
+
+        .info-text {
+            color: #8a9ba8;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .empty-state {
+            grid-column: 1/-1;
+            text-align: center;
+            padding: 60px 20px;
+            color: #5a6c7d;
+            font-size: 14px;
+        }
+
+        .fire-tv-brand {
+            background: linear-gradient(135deg, #ff9500, #ff6500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #232f3e;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #ff9500;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #e6850e;
+        }
+
+        /* Fire TV themed animations */
+        @keyframes fireGlow {
+            0%, 100% { box-shadow: 0 0 8px rgba(255, 149, 0, 0.3); }
+            50% { box-shadow: 0 0 16px rgba(255, 149, 0, 0.5); }
+        }
+
+        .remote-btn.center {
+            animation: fireGlow 2s ease-in-out infinite;
+        }
+
+        /* Media queries for responsiveness */
+        @media (max-width: 1000px) {
+            .left-panel {
+                width: 320px;
+            }
+            
+            .remote-grid {
+                max-width: 180px;
+            }
+            
+            .remote-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 16px;
+            }
+        }
+
+        /* Additional styles for better rounded window appearance */
+        @media (max-width: 768px) {
+            body {
+                padding: 4px;
+            }
+            
+            .window-container {
+                height: calc(100vh - 8px);
+                border-radius: 8px;
+            }
+            
+            .title-bar {
+                border-radius: 8px 8px 0 0;
+            }
+            
+            .main-content {
+                border-radius: 0 0 8px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="window-container">
+        <div class="title-bar">
+            <div class="title-text">Fire TV Remote Control</div>
+            <div class="window-controls">
+                <button class="control-btn minimize" onclick="minimizeWindow()"></button>
+                <button class="control-btn maximize" onclick="maximizeWindow()"></button>
+                <button class="control-btn close" onclick="closeWindow()"></button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <!-- Connection Section -->
+                <div class="section">
+                    <h3>Device Connection</h3>
+                    <div class="status-row">
+                        <div class="status-indicator" id="statusIndicator"></div>
+                        <span id="statusText">Disconnected</span>
+                    </div>
+                    <div class="connection-row">
+                        <input type="text" class="input-field" id="deviceIp" placeholder="Fire TV IP Address (e.g., 192.168.1.100)">
+                    </div>
+                    <div class="connection-row">
+                        <button class="btn" onclick="connectDeviceEnhanced()">Connect</button>
+                    </div>
+                    <div class="connection-row">
+                        <button class="btn secondary small" onclick="checkDeviceStatus()">Status</button>
+                        <button class="btn secondary small" onclick="manualReconnect()">Reconnect</button>
+                        <button class="btn secondary small" onclick="wakeDevice()">Wake</button>
+                    </div>
+                    <div class="connection-row">
+                        <button class="btn disconnect small" onclick="disconnectAll()">Disconnect</button>
+                    </div>
+                </div>
+
+                <!-- Remote Control Section -->
+                <div class="section remote-section">
+                    <h3>Remote Control</h3>
+                    
+                    <!-- D-Pad Navigation -->
+                    <div class="remote-grid">
+                        <div></div>
+                        <button class="remote-btn" onclick="sendRemoteCommandEnhanced('KEYCODE_DPAD_UP')">▲</button>
+                        <div></div>
+                        <button class="remote-btn" onclick="sendRemoteCommandEnhanced('KEYCODE_DPAD_LEFT')">◀</button>
+                        <button class="remote-btn center" onclick="sendRemoteCommandEnhanced('KEYCODE_DPAD_CENTER')">OK</button>
+                        <button class="remote-btn" onclick="sendRemoteCommandEnhanced('KEYCODE_DPAD_RIGHT')">▶</button>
+                        <div></div>
+                        <button class="remote-btn" onclick="sendRemoteCommandEnhanced('KEYCODE_DPAD_DOWN')">▼</button>
+                        <div></div>
+                    </div>
+
+                    <!-- Media Controls -->
+                    <div class="controls-row">
+                        <button class="control-btn-small" onclick="sendRemoteCommandEnhanced('KEYCODE_MEDIA_PREVIOUS')" title="Previous">⏮</button>
+                        <button class="control-btn-small" onclick="sendRemoteCommandEnhanced('KEYCODE_MEDIA_PLAY_PAUSE')" title="Play/Pause">⏯</button>
+                        <button class="control-btn-small" onclick="sendRemoteCommandEnhanced('KEYCODE_MEDIA_NEXT')" title="Next">⏭</button>
+                    </div>
+
+                    <!-- System Buttons -->
+                    <div class="system-controls">
+                        <button class="system-btn" onclick="sendRemoteCommandEnhanced('KEYCODE_HOME')">Home</button>
+                        <button class="system-btn" onclick="sendRemoteCommandEnhanced('KEYCODE_BACK')">Back</button>
+                        <button class="system-btn" onclick="sendRemoteCommandEnhanced('KEYCODE_MENU')">Menu</button>
+                    </div>
+
+                    <!-- Volume Controls -->
+                    <div class="controls-row">
+                        <button class="control-btn-small" onclick="sendRemoteCommandEnhanced('KEYCODE_VOLUME_DOWN')" title="Volume Down">Vol-</button>
+                        <button class="control-btn-small" onclick="sendRemoteCommandEnhanced('KEYCODE_VOLUME_MUTE')" title="Mute">Mute</button>
+                        <button class="control-btn-small" onclick="sendRemoteCommandEnhanced('KEYCODE_VOLUME_UP')" title="Volume Up">Vol+</button>
+                    </div>
+
+                    <!-- Text Input -->
+                    <div class="text-input-section">
+                        <input type="text" class="input-field" id="textInput" placeholder="Type text to send">
+                        <button class="btn" onclick="sendTextEnhanced()">Send</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="right-content">
+                    <div class="tabs">
+                        <button class="tab active" onclick="switchTab('terminal')">ADB Terminal</button>
+                        <button class="tab" onclick="switchTab('apps')">Apps Manager</button>
+                        <button class="tab" onclick="switchTab('installer')">APK Installer</button>
+                    </div>
+
+                    <!-- Terminal Tab -->
+                    <div class="tab-content" id="terminalTab">
+                        <div class="terminal" id="terminal"></div>
+                        <div class="terminal-input">
+                            <input type="text" class="terminal-field" id="commandInput" placeholder="Enter ADB command..." onkeypress="handleEnterKey(event)">
+                            <button class="btn" onclick="executeCommand()">Execute</button>
+                            <button class="btn secondary" onclick="clearTerminal()">Clear</button>
+                        </div>
+                    </div>
+
+                    <!-- Apps Tab -->
+                    <div class="tab-content hidden" id="appsTab">
+                        <div style="margin-bottom: 20px;">
+                            <button class="btn" onclick="loadApps()">Refresh Apps</button>
+                        </div>
+                        <div class="apps-grid" id="appsGrid">
+                            <div class="empty-state">
+                                Click "Refresh Apps" to load installed applications
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Installer Tab -->
+                    <div class="tab-content hidden" id="installerTab">
+                        <div class="install-section">
+                            <h3>APK Installer</h3>
+                            <p class="info-text">
+                                Install Android APK files on your Fire TV device. Make sure your device is connected via ADB before proceeding.
+                            </p>
+                            <button class="btn" onclick="installApk()" style="font-size: 16px; padding: 16px 32px;">
+                                Select & Install APK
+                            </button>
+                        </div>
+                        <div class="terminal" id="installTerminal" style="height: 300px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        let currentTab = 'terminal';
+        let lastConnectedIP = '';
+        let connectionCheckInterval = null;
+
+        // Window controls
+        function minimizeWindow() {
+            ipcRenderer.send('window-minimize');
+        }
+
+        function maximizeWindow() {
+            ipcRenderer.send('window-maximize');
+        }
+
+        function closeWindow() {
+            ipcRenderer.send('window-close');
+        }
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab and mark button as active
+            document.getElementById(tabName + 'Tab').classList.remove('hidden');
+            event.target.classList.add('active');
+            currentTab = tabName;
+        }
+
+        // Enhanced device connection with better error handling
+        async function connectDeviceEnhanced() {
+            const ip = document.getElementById('deviceIp').value.trim();
+            if (!ip) {
+                addTerminalOutput('Error: Please enter a valid IP address', 'error');
+                return;
+            }
+
+            addTerminalOutput(`Connecting to ${ip}...`, 'info');
+            addTerminalOutput('This may take a few seconds...', 'info');
+            
+            try {
+                const result = await ipcRenderer.invoke('connect-device-enhanced', ip);
+                if (result.success) {
+                    updateConnectionStatus(true);
+                    lastConnectedIP = ip;
+                    addTerminalOutput(`Connected and authorized: ${ip}`, 'success');
+                    addTerminalOutput(result.output, 'output');
+                    
+                    // Start periodic connection checks
+                    startConnectionMonitoring();
+                } else {
+                    updateConnectionStatus(false);
+                    if (result.status === 'unauthorized') {
+                        addTerminalOutput(`Authorization required: ${result.error}`, 'error');
+                        addTerminalOutput('Go to Settings > Device Options > Developer Options > ADB Debugging on your Fire TV', 'info');
+                    } else {
+                        addTerminalOutput(`Connection failed: ${result.error}`, 'error');
+                    }
+                }
+            } catch (error) {
+                addTerminalOutput(`Connection error: ${error.message}`, 'error');
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            const indicator = document.getElementById('statusIndicator');
+            const text = document.getElementById('statusText');
+            
+            if (connected) {
+                indicator.classList.add('connected');
+                text.textContent = 'Connected';
+            } else {
+                indicator.classList.remove('connected');
+                text.textContent = 'Disconnected';
+            }
+        }
+
+        // Enhanced remote command with auto-reconnect
+        async function sendRemoteCommandEnhanced(keycode) {
+            try {
+                const result = await ipcRenderer.invoke('remote-command-enhanced', keycode);
+                
+                if (result.success) {
+                    // Command succeeded, ensure status shows connected
+                    updateConnectionStatus(true);
+                } else {
+                    if (result.needsReconnect) {
+                        updateConnectionStatus(false);
+                        addTerminalOutput(`Warning: ${result.error}`, 'error');
+                        
+                        // Attempt auto-reconnect if we have a saved IP
+                        if (lastConnectedIP) {
+                            addTerminalOutput('Attempting auto-reconnect...', 'info');
+                            await autoReconnect();
+                        }
+                    } else {
+                        addTerminalOutput(`Remote command failed: ${result.error}`, 'error');
+                    }
+                }
+            } catch (error) {
+                addTerminalOutput(`Remote error: ${error.message}`, 'error');
+            }
+        }
+
+        // Enhanced text sending with connection check
+        async function sendTextEnhanced() {
+            const text = document.getElementById('textInput').value.trim();
+            if (!text) return;
+
+            try {
+                const result = await ipcRenderer.invoke('send-text-enhanced', text);
+                
+                if (result.success) {
+                    addTerminalOutput(`Sent text: "${text}"`, 'success');
+                    document.getElementById('textInput').value = '';
+                    updateConnectionStatus(true);
+                } else {
+                    if (result.needsReconnect) {
+                        updateConnectionStatus(false);
+                        addTerminalOutput(`Warning: ${result.error}`, 'error');
+                        
+                        if (lastConnectedIP) {
+                            addTerminalOutput('Attempting auto-reconnect...', 'info');
+                            await autoReconnect();
+                        }
+                    } else {
+                        addTerminalOutput(`Text send failed: ${result.error}`, 'error');
+                    }
+                }
+            } catch (error) {
+                addTerminalOutput(`Text error: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-reconnect function
+        async function autoReconnect() {
+            if (!lastConnectedIP) {
+                addTerminalOutput('No previous connection to restore', 'error');
+                return false;
+            }
+
+            try {
+                const result = await ipcRenderer.invoke('auto-reconnect', lastConnectedIP);
+                if (result.success) {
+                    addTerminalOutput('Auto-reconnect successful', 'success');
+                    updateConnectionStatus(true);
+                    return true;
+                } else {
+                    addTerminalOutput(`Auto-reconnect failed: ${result.error}`, 'error');
+                    updateConnectionStatus(false);
+                    return false;
+                }
+            } catch (error) {
+                addTerminalOutput(`Auto-reconnect error: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        // Manual reconnect function
+        async function manualReconnect() {
+            if (!lastConnectedIP) {
+                addTerminalOutput('No previous connection to restore. Please connect manually.', 'error');
+                return;
+            }
+            
+            addTerminalOutput(`Reconnecting to ${lastConnectedIP}...`, 'info');
+            
+            // Set the IP field and connect
+            document.getElementById('deviceIp').value = lastConnectedIP;
+            await connectDeviceEnhanced();
+        }
+
+        // Check device status
+        async function checkDeviceStatus() {
+            addTerminalOutput('Checking device status...', 'info');
+            
+            try {
+                const result = await ipcRenderer.invoke('check-device-status');
+                if (result.success) {
+                    if (result.devices.length === 0) {
+                        addTerminalOutput('No devices connected', 'info');
+                        updateConnectionStatus(false);
+                    } else {
+                        result.devices.forEach(device => {
+                            const statusEmoji = device.status === 'device' ? '[ONLINE]' : 
+                                               device.status === 'unauthorized' ? '[AUTH REQUIRED]' : '[OFFLINE]';
+                            addTerminalOutput(`${statusEmoji} ${device.id}: ${device.status}`, 'info');
+                        });
+                        
+                        const hasOnlineDevice = result.devices.some(device => device.status === 'device');
+                        updateConnectionStatus(hasOnlineDevice);
+                    }
+                } else {
+                    addTerminalOutput(`Status check failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                addTerminalOutput(`Status error: ${error.message}`, 'error');
+            }
+        }
+
+        // Enhanced wake function
+        async function wakeDevice() {
+            addTerminalOutput('Attempting to wake device...', 'info');
+            
+            try {
+                const result = await ipcRenderer.invoke('wake-device');
+                if (result.success) {
+                    addTerminalOutput('Wake command sent', 'success');
+                } else {
+                    addTerminalOutput(`Wake failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                addTerminalOutput(`Wake error: ${error.message}`, 'error');
+            }
+        }
+
+        // Disconnect all devices
+        async function disconnectAll() {
+            addTerminalOutput('Disconnecting all devices...', 'info');
+            
+            try {
+                const result = await ipcRenderer.invoke('adb-command', 'disconnect');
+                if (result.success) {
+                    addTerminalOutput('All devices disconnected', 'success');
+                    updateConnectionStatus(false);
+                    stopConnectionMonitoring();
+                } else {
+                    addTerminalOutput(`Disconnect failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                addTerminalOutput(`Disconnect error: ${error.message}`, 'error');
+            }
+        }
+
+        // Connection monitoring
+        function startConnectionMonitoring() {
+            // Clear existing interval
+            if (connectionCheckInterval) {
+                clearInterval(connectionCheckInterval);
+            }
+            
+            // Check connection every 30 seconds
+            connectionCheckInterval = setInterval(async () => {
+                try {
+                    const result = await ipcRenderer.invoke('check-device-status');
+                    if (result.success) {
+                        const hasOnlineDevice = result.devices.some(device => device.status === 'device');
+                        updateConnectionStatus(hasOnlineDevice);
+                        
+                        if (!hasOnlineDevice && lastConnectedIP) {
+                            addTerminalOutput('Device connection lost, attempting reconnect...', 'info');
+                            await autoReconnect();
+                        }
+                    }
+                } catch (error) {
+                    console.error('Connection check failed:', error);
+                }
+            }, 30000);
+        }
+
+        function stopConnectionMonitoring() {
+            if (connectionCheckInterval) {
+                clearInterval(connectionCheckInterval);
+                connectionCheckInterval = null;
+            }
+        }
+
+        // Terminal functionality
+        function addTerminalOutput(text, type = 'output') {
+            const terminal = document.getElementById('terminal');
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                'error': '#d63031',
+                'success': '#00b894',
+                'info': '#ff9500',
+                'output': '#ffffff'
+            };
+            
+            const line = document.createElement('div');
+            line.style.color = colors[type] || colors.output;
+            line.style.marginBottom = '4px';
+            line.innerHTML = `<span style="color: #5a6c7d;">[${timestamp}]</span> ${text}`;
+            
+            terminal.appendChild(line);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function addInstallOutput(text, type = 'output') {
+            const terminal = document.getElementById('installTerminal');
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                'error': '#d63031',
+                'success': '#00b894',
+                'info': '#ff9500',
+                'output': '#ffffff'
+            };
+            
+            const line = document.createElement('div');
+            line.style.color = colors[type] || colors.output;
+            line.style.marginBottom = '4px';
+            line.innerHTML = `<span style="color: #5a6c7d;">[${timestamp}]</span> ${text}`;
+            
+            terminal.appendChild(line);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        async function executeCommand() {
+            const command = document.getElementById('commandInput').value.trim();
+            if (!command) return;
+
+            addTerminalOutput(`$ adb ${command}`, 'info');
+            
+            try {
+                const result = await ipcRenderer.invoke('adb-command', command);
+                if (result.success) {
+                    if (result.stdout) {
+                        addTerminalOutput(result.stdout, 'output');
+                    }
+                    if (result.stderr) {
+                        addTerminalOutput(result.stderr, 'error');
+                    }
+                } else {
+                    addTerminalOutput(`Command failed: ${result.error}`, 'error');
+                    if (result.stderr) {
+                        addTerminalOutput(result.stderr, 'error');
+                    }
+                }
+            } catch (error) {
+                addTerminalOutput(`Execution error: ${error.message}`, 'error');
+            }
+            
+            document.getElementById('commandInput').value = '';
+        }
+
+        function handleEnterKey(event) {
+            if (event.key === 'Enter') {
+                executeCommand();
+            }
+        }
+
+        function clearTerminal() {
+            document.getElementById('terminal').innerHTML = '';
+        }
+
+        // Apps management
+        async function loadApps() {
+            const appsGrid = document.getElementById('appsGrid');
+            appsGrid.innerHTML = '<div class="empty-state">Loading applications...</div>';
+            
+            try {
+                const result = await ipcRenderer.invoke('get-apps');
+                if (result.success) {
+                    displayApps(result.packages);
+                    addTerminalOutput(`Loaded ${result.packages.length} applications`, 'success');
+                } else {
+                    appsGrid.innerHTML = '<div class="empty-state">Failed to load apps</div>';
+                    addTerminalOutput(`Failed to load apps: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                appsGrid.innerHTML = '<div class="empty-state">Error loading apps</div>';
+                addTerminalOutput(`Apps error: ${error.message}`, 'error');
+            }
+        }
+
+        function displayApps(packages) {
+            const appsGrid = document.getElementById('appsGrid');
+            appsGrid.innerHTML = '';
+            
+            // Filter out system packages and sort
+            const userApps = packages
+                .filter(pkg => !pkg.startsWith('com.android.') && !pkg.startsWith('android.'))
+                .sort();
+            
+            if (userApps.length === 0) {
+                appsGrid.innerHTML = '<div class="empty-state">No user apps found</div>';
+                return;
+            }
+            
+            userApps.forEach(packageName => {
+                const appItem = document.createElement('div');
+                appItem.className = 'app-item';
+                appItem.onclick = () => launchApp(packageName);
+                
+                const appIcon = document.createElement('div');
+                appIcon.className = 'app-icon';
+                appIcon.textContent = getAppIcon(packageName);
+                
+                const appName = document.createElement('div');
+                appName.className = 'app-name';
+                appName.textContent = getAppDisplayName(packageName);
+                appName.title = packageName; // Show full package name on hover
+                
+                appItem.appendChild(appIcon);
+                appItem.appendChild(appName);
+                appsGrid.appendChild(appItem);
+            });
+        }
+
+        function getAppIcon(packageName) {
+            // Return appropriate letters for common apps
+            if (packageName.includes('netflix')) return 'NF';
+            if (packageName.includes('youtube')) return 'YT';
+            if (packageName.includes('amazon')) return 'AZ';
+            if (packageName.includes('hulu')) return 'HU';
+            if (packageName.includes('disney')) return 'DI';
+            if (packageName.includes('spotify')) return 'SP';
+            if (packageName.includes('twitch')) return 'TW';
+            if (packageName.includes('chrome')) return 'CH';
+            if (packageName.includes('facebook')) return 'FB';
+            if (packageName.includes('instagram')) return 'IG';
+            if (packageName.includes('twitter')) return 'TW';
+            if (packageName.includes('whatsapp')) return 'WA';
+            if (packageName.includes('telegram')) return 'TG';
+            if (packageName.includes('gmail')) return 'GM';
+            if (packageName.includes('maps')) return 'MP';
+            if (packageName.includes('camera')) return 'CM';
+            if (packageName.includes('gallery')) return 'GL';
+            if (packageName.includes('music')) return 'MU';
+            if (packageName.includes('video')) return 'VD';
+            if (packageName.includes('game')) return 'GM';
+            
+            // Default: first two letters of last part
+            const parts = packageName.split('.');
+            const lastPart = parts[parts.length - 1];
+            return lastPart.substring(0, 2).toUpperCase();
+        }
+
+        function getAppDisplayName(packageName) {
+            // Extract a readable name from package name
+            const parts = packageName.split('.');
+            let name = parts[parts.length - 1]; // Get last part
+            
+            // Capitalize first letter and replace common abbreviations
+            name = name.charAt(0).toUpperCase() + name.slice(1);
+            name = name.replace(/tv/gi, 'TV');
+            name = name.replace(/ui/gi, 'UI');
+            name = name.replace(/app/gi, 'App');
+            
+            return name;
+        }
+
+        async function launchApp(packageName) {
+            addTerminalOutput(`Launching ${packageName}...`, 'info');
+            
+            try {
+                const result = await ipcRenderer.invoke('launch-app', packageName);
+                if (result.success) {
+                    addTerminalOutput(`Launched ${packageName}`, 'success');
+                } else {
+                    addTerminalOutput(`Launch failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                addTerminalOutput(`Launch error: ${error.message}`, 'error');
+            }
+        }
+
+        // APK Installation
+        async function installApk() {
+            addInstallOutput('Opening file dialog...', 'info');
+            
+            try {
+                const result = await ipcRenderer.invoke('install-apk');
+                if (result.success) {
+                    addInstallOutput('APK installation completed successfully!', 'success');
+                    if (result.output) {
+                        addInstallOutput(result.output, 'output');
+                    }
+                } else {
+                    addInstallOutput(`Installation failed: ${result.error}`, 'error');
+                    if (result.stderr) {
+                        addInstallOutput(result.stderr, 'error');
+                    }
+                }
+            } catch (error) {
+                addInstallOutput(`Installation error: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            addTerminalOutput('Fire TV Remote Control initialized', 'success');
+            addTerminalOutput('Enhanced with auto-reconnect and better error handling', 'info');
+            addTerminalOutput('Tip: Enable ADB debugging and connect via IP address', 'info');
+            addTerminalOutput('Use Status button to check device authorization', 'info');
+            
+            // Set focus to command input
+            document.getElementById('commandInput').focus();
+        });
+
+        // Handle text input enter key
+        document.getElementById('textInput').addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                sendTextEnhanced();
+            }
+        });
+
+        // Cleanup on app close
+        window.addEventListener('beforeunload', () => {
+            stopConnectionMonitoring();
+        });
+    </script>
+</body>
+</html>
